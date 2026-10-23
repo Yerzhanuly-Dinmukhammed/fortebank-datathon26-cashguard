@@ -210,7 +210,7 @@ Model weights and API keys are not included either.
 ## Team
 
 Team project at DATATHON '26.
-**ML** — model selection and benchmarks, auto-labelling and detector fine-tuning, rules, Qwen integration, evaluation
+**ML lead** — model selection and benchmarks, auto-labelling and detector fine-tuning, rules, Qwen integration, evaluation
 and stress tests: [@Yerzhanuly-Dinmukhammed](https://github.com/Yerzhanuly-Dinmukhammed).
 Audit add-on, leak-free detector retraining, web UI, regulations and final service assembly — the team; original
 repository: [cashguard-forte-datathon26](https://github.com/salauatabdraimov65-wq/cashguard-forte-datathon26).
