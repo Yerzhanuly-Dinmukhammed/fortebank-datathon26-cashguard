@@ -70,16 +70,16 @@ local (cloud AI APIs = disqualification), ≤ 5 min per video, no face recogniti
 
 ```mermaid
 flowchart LR
-    V[MOV video<br/>4 frames/s] --> P[YOLO11m + BoT-SORT<br/>people & tracks]
-    V --> H[YOLO11m-pose<br/>wrists]
-    V --> D[fine-tuned YOLO11m<br/>cash, bag, safe, counting machine, phone]
-    P --> T[per-second timelines]
+    V["MOV video<br/>4 frames per second"] --> P["YOLO11m and BoT-SORT<br/>people and tracks"]
+    V --> H["YOLO11m-pose<br/>wrists"]
+    V --> D["fine-tuned YOLO11m<br/>cash, bag, safe, counting machine, phone"]
+    P --> T["per-second timelines"]
     H --> T
     D --> T
-    T --> R[time-based rules<br/>R1–R8]
-    R --> Q[Qwen3.5-9B<br/>yes / no on ambiguous moments]
-    Q --> A[audit add-on<br/>end-state of the scene]
-    A --> J[JSON: verdict + events<br/>type · timecode · frames · clause]
+    T --> R["time-based rules<br/>R1 to R8"]
+    R --> Q["Qwen3.5-9B<br/>yes or no on ambiguous moments"]
+    Q --> A["audit add-on<br/>end state of the scene"]
+    A --> J["JSON verdict and events<br/>type, timecode, frames, clause"]
 ```
 
 **Why not one big model.** Clean clips and violation clips in this dataset follow the *same* scenarios — what differs
