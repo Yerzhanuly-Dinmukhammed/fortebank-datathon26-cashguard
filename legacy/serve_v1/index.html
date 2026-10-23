@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка кассовой дисциплины</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --ok:#15803d; --bad:#b91c1c; --warnbg:#fef2f2; --okbg:#f0fdf4; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1115; --card:#181b22; --text:#e5e7eb; --muted:#9ca3af; --line:#2a2f3a; --accent:#60a5fa; --ok:#4ade80; --bad:#f87171; --warnbg:#2a1414; --okbg:#10241a; } }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input[type=password], input[type=file] { width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; background:transparent; color:inherit; }
+  button { margin-top:12px; padding:10px 18px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  .status { color:var(--muted); margin-top:10px; min-height:22px; }
+  .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:8px; display:none; }
+  .bar > div { height:100%; width:0; background:var(--accent); transition:width .2s; }
+  .verdict { font-size:18px; font-weight:700; padding:12px 14px; border-radius:10px; margin-bottom:12px; }
+  .verdict.bad { background:var(--warnbg); color:var(--bad); }
+  .verdict.ok { background:var(--okbg); color:var(--ok); }
+  .viol { border-top:1px solid var(--line); padding-top:14px; margin-top:14px; }
+  .viol h3 { margin:0 0 4px; font-size:16px; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:6px; }
+  .frames { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .frames figure { margin:0; flex:1 1 180px; max-width:260px; }
+  .frames img { width:100%; border-radius:8px; border:1px solid var(--line); }
+  .frames figcaption { font-size:12px; color:var(--muted); text-align:center; }
+  .rule { font-size:13px; background:var(--bg); border-radius:8px; padding:8px 10px; margin-top:8px; }
+  .note { font-size:12px; color:var(--muted); margin-top:16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Проверка кассовой дисциплины по видео</h1>
+  <p class="sub">Загрузите запись с камеры кассы (.mov). Сервис найдёт визуальные признаки возможных нарушений, покажет таймкод, кадры и правило.</p>
+
+  <div class="card">
+    <label for="key">API-ключ</label>
+    <input id="key" type="password" placeholder="X-API-Key" autocomplete="off">
+    <div style="height:12px"></div>
+    <label for="file">Видео</label>
+    <input id="file" type="file" accept="video/*,.mov">
+    <button id="go">Проверить</button>
+    <div class="bar" id="bar"><div></div></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card" id="result" style="display:none"></div>
+  <p class="note">Результат — подсказка для проверяющего, а не окончательное заключение. Лица не распознаются. Анализ выполняется локально на сервере.</p>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+try { $("key").value = localStorage.getItem("apiKey") || ""; } catch (e) {}
+
+function fmt(t) { const m = Math.floor(t / 60), s = (t % 60).toFixed(1); return m ? `${m}:${s.padStart(4, "0")}` : `${s} c`; }
+
+function render(job) {
+  const box = $("result"); box.style.display = "block";
+  if (job.status === "failed") { box.innerHTML = `<div class="verdict bad">Ошибка обработки</div><div>${esc(job.error)}</div>`; return; }
+  const v = job.violations || [];
+  let html = job.verdict === "violation"
+    ? `<div class="verdict bad">Обнаружены признаки возможных нарушений: ${v.length}</div>`
+    : `<div class="verdict ok">Нарушение не обнаружено</div>`;
+  for (const x of v) {
+    const r = x.rule || {};
+    const rule = r.document && r.document !== "ЗАПОЛНИТЬ"
+      ? `<div class="rule"><b>${esc(r.document)}</b>${r.clause ? ", " + esc(r.clause) : ""}<br>${esc(r.summary || "")}${r.url ? ` — <a href="${esc(r.url)}" target="_blank" rel="noopener">источник</a>` : ""}</div>` : "";
+    const frames = (x.evidence_frames || []).map(f =>
+      `<figure><img alt="кадр ${esc(f.timestamp_sec)} c" src="data:image/jpeg;base64,${f.image_base64}"><figcaption>${fmt(f.timestamp_sec)}</figcaption></figure>`).join("");
+    html += `<div class="viol"><h3>${esc(x.type)}</h3>
+      <div class="meta">Таймкод: <b>${fmt(x.timecode_sec)}</b>${x.confidence != null ? ` · уверенность ${Math.round(x.confidence * 100)}%` : ""}</div>
+      <div>${esc(x.description)}</div>${rule}<div class="frames">${frames}</div></div>`;
+  }
+  box.innerHTML = html;
+}
+
+async function poll(jobId, key) {
+  const t0 = Date.now();
+  while (true) {
+    const r = await fetch(`/api/v1/jobs/${jobId}`, { headers: { "X-API-Key": key } });
+    if (!r.ok) { $("status").textContent = `Ошибка ${r.status}`; break; }
+    const job = await r.json();
+    if (job.status !== "processing") { $("status").textContent = `Готово за ${Math.round((Date.now() - t0) / 1000)} c`; render(job); break; }
+    $("status").textContent = `Анализ видео… ${Math.round((Date.now() - t0) / 1000)} c`;
+    await new Promise(res => setTimeout(res, 2000));
+  }
+  $("go").disabled = false;
+}
+
+$("go").onclick = () => {
+  const key = $("key").value.trim(), file = $("file").files[0];
+  if (!key || !file) { $("status").textContent = "Укажите ключ и выберите видео"; return; }
+  try { localStorage.setItem("apiKey", key); } catch (e) {}
+  $("go").disabled = true; $("result").style.display = "none";
+  const fd = new FormData(); fd.append("file", file);
+  const xhr = new XMLHttpRequest(); xhr.open("POST", "/api/v1/analyze"); xhr.setRequestHeader("X-API-Key", key);
+  $("bar").style.display = "block";
+  xhr.upload.onprogress = (e) => { if (e.lengthComputable) { $("bar").firstElementChild.style.width = (100 * e.loaded / e.total) + "%"; $("status").textContent = `Загрузка ${Math.round(100 * e.loaded / e.total)}%`; } };
+  xhr.onload = () => {
+    $("bar").style.display = "none";
+    if (xhr.status !== 200) { $("status").textContent = xhr.status === 401 ? "Неверный API-ключ" : `Ошибка загрузки (${xhr.status})`; $("go").disabled = false; return; }
+    poll(JSON.parse(xhr.responseText).job_id, key);
+  };
+  xhr.onerror = () => { $("status").textContent = "Сеть недоступна"; $("go").disabled = false; };
+  xhr.send(fd);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# service + pipeline (GPU server: Linux, CUDA, Python 3.12; torch 2.8 + CUDA come with the image)
+fastapi
+uvicorn
+python-multipart
+opencv-python-headless
+pillow
+numpy
+pandas
+pyarrow              # timelines (parquet)
+openpyxl             # open_labels.xlsx
+transformers         # Qwen3.5-9B yes/no checks; OWLv2 / SigLIP2 / RT-DETR in research/
+accelerate
+ultralytics==8.4.180 # YOLO11m detect / pose / BoT-SORT tracking, detector fine-tuning
+
+# research/ only
+scikit-learn
+av

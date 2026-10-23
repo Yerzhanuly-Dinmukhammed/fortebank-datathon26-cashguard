@@ -1,0 +1,30 @@
+# case data and anything derived from it never goes into the repo
+data/
+*.mov
+*.MOV
+*.mp4
+*.jpg
+*.png
+!assets/*.png
+*.parquet
+*.zip
+results/
+timelines/
+runs/
+
+# weights and caches
+*.pt
+*.pth
+*.safetensors
+hf_cache/
+
+# secrets
+api_key.txt
+.env
+
+# python / OS
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.DS_Store
